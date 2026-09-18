@@ -1,0 +1,13 @@
+---
+description: State-aware dynamic content rules
+alwaysApply: false
+---
+Support common states: carousels/sliders, tabs, accordions, modals, dropdowns and show/hide.
+- Model content as page -> state -> content item.
+- Never overwrite one state with another.
+- Deduplicate equivalent states.
+- Put limits on browser discovery.
+- Do not clone complex backend application logic in MVP.
+- Report unsupported dynamic behavior clearly.
+- Keep browser automation isolated and security constrained.
+- Test edits are scoped to the correct state.

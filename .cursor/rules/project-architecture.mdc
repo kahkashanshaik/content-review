@@ -1,0 +1,17 @@
+---
+description: Core architecture constraints
+alwaysApply: true
+---
+- Treat docs/PRD.md as product source of truth.
+- Follow docs/ARCHITECTURE.md for boundaries.
+- Separate crawler, extraction, rendering, dynamic discovery, editing, change tracking and persistence.
+- Use strict TypeScript.
+- Keep domain/application logic independent from Dexie.
+- Use repository interfaces.
+- Stable content IDs are required.
+- Dynamic content is state-aware.
+- Treat crawled HTML/CSS/URLs as untrusted.
+- Isolate snapshot styling/DOM from application UI.
+- Support LTR, RTL and mixed direction.
+- Add tests for meaningful behavior.
+- Do not weaken security controls for convenience.

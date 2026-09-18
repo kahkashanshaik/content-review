@@ -1,0 +1,17 @@
+---
+description: Security rules for untrusted webpages
+alwaysApply: true
+---
+- Treat every crawled page as hostile input.
+- Prevent SSRF in initial URLs and redirects.
+- Block localhost, loopback, private, link-local and cloud metadata addresses.
+- Validate every redirect.
+- Enforce response, timeout and redirect limits.
+- Accept only supported HTTP/HTTPS resources.
+- Never execute arbitrary source-page JavaScript in the review application.
+- Sanitize untrusted HTML and remove inline event handlers.
+- Reject unsafe URL schemes.
+- Isolate source CSS and DOM.
+- Treat edited content as untrusted text unless deliberately sanitized.
+- Never expose application secrets or privileged cookies to crawled sites.
+- Add regression tests for security bugs.

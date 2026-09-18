@@ -1,0 +1,13 @@
+---
+description: Testing and verification requirements
+alwaysApply: true
+---
+- New behavior requires tests where practical.
+- Run typecheck and lint after meaningful changes.
+- Run relevant unit/integration tests.
+- Run the production build before completing a phase.
+- UI changes require browser verification.
+- Crawler changes require SSRF/security regression tests.
+- Directionality changes require LTR/RTL/mixed-direction tests.
+- Dynamic changes require state-specific tests.
+- Never report success based only on compilation.

@@ -1,0 +1,15 @@
+---
+description: LTR, RTL and bidirectional content rules
+alwaysApply: false
+---
+When working on webpage content:
+- Preserve explicit HTML dir attributes.
+- Respect element-level direction.
+- Use lang as metadata.
+- Account for CSS direction, text-align and unicode-bidi.
+- Support mixed LTR/RTL content.
+- Do not assume a page is uniformly RTL.
+- Keep numbers, URLs, punctuation and Latin fragments readable inside RTL text.
+- Prefer logical CSS properties.
+- Keep application UI direction separate from crawled-page direction.
+- Test rendering and inline editing.

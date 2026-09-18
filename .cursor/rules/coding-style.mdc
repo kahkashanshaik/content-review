@@ -1,0 +1,13 @@
+---
+description: General project coding standards
+alwaysApply: true
+---
+- Prefer small composable modules.
+- Use descriptive names and explicit domain types.
+- Avoid unnecessary any.
+- Handle errors explicitly.
+- Avoid hidden global state.
+- Check existing dependencies before adding new ones.
+- Keep components accessible.
+- Avoid unnecessary Next.js client components.
+- Keep server-only crawler/browser code out of the browser bundle.
