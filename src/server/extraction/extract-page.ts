@@ -56,6 +56,8 @@ export function createHtmlExtractor(): ContentExtractor {
   };
 }
 
+const NESTED_LIST_TAGS = new Set(["ul", "ol", "menu"]);
+
 function walk(
   element: HtmlElement,
   ancestorExtracted: boolean,
@@ -68,7 +70,7 @@ function walk(
   }
 
   let extractedHere = false;
-  if (isExtractableTag(tag) && !ancestorExtracted) {
+  if (isExtractableTag(tag) && !ancestorExtracted && !isNestedContentContainer(element, tag)) {
     const text = visibleText(element);
     if (text.length > 0) {
       const selector = elementSelector(element);
@@ -92,4 +94,35 @@ function walk(
       walk(child, ancestorExtracted || extractedHere, items, idNamespace);
     }
   }
+}
+
+function isNestedContentContainer(element: HtmlElement, tag: string): boolean {
+  if (hasMatchingDescendant(element, (child) => NESTED_LIST_TAGS.has(tagNameOf(child)))) {
+    return true;
+  }
+
+  return tag === "li" && hasMatchingDescendant(element, (child) => isExtractableTag(tagNameOf(child)));
+}
+
+function hasMatchingDescendant(
+  element: HtmlElement,
+  match: (child: HtmlElement) => boolean,
+): boolean {
+  for (let i = 0; i < element.children.length; i += 1) {
+    const child = element.children[i];
+    if (child === undefined) {
+      continue;
+    }
+
+    const childTag = tagNameOf(child);
+    if (shouldSkipTag(childTag) || isHiddenElement(child)) {
+      continue;
+    }
+
+    if (match(child) || hasMatchingDescendant(child, match)) {
+      return true;
+    }
+  }
+
+  return false;
 }

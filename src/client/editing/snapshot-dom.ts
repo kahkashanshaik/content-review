@@ -89,6 +89,10 @@ export function contentSelector(contentId: string): string {
   return `[${CONTENT_ID_ATTRIBUTE}="${cssEscape(contentId)}"]`;
 }
 
+const ELEMENT_NODE = 1;
+const NESTED_LIST_TAGS = new Set(["ul", "ol", "menu"]);
+const LABEL_TAGS = new Set(["a", "button"]);
+
 export function applyCurrentText(root: SnapshotRoot, items: readonly ContentItem[]): void {
   for (const item of items) {
     const node = root.querySelector(contentSelector(item.id));
@@ -113,24 +117,35 @@ export function renderMixedText(
   text: string,
   direction: TextDirection | undefined,
 ): void {
+  const label = findEditableLabelNode(node);
+  const target = isWritableSnapshotNode(label) ? label : node;
   applyDirection(node, direction);
-  const document = node.ownerDocument;
-  if (document === undefined || node.appendChild === undefined) {
-    node.textContent = text;
+  if (target !== node) {
+    applyDirection(target, direction);
+  }
+
+  const document = target.ownerDocument;
+  if (document === undefined || target.appendChild === undefined) {
+    target.textContent = text;
     return;
   }
 
-  node.textContent = "";
+  const preserved = containsNestedList(node) ? collectPreservedChildren(target) : [];
+  target.textContent = "";
   for (const segment of segmentMixedText(text, direction)) {
     if (segment.dir === undefined) {
-      node.appendChild(document.createTextNode(segment.text));
+      target.appendChild(document.createTextNode(segment.text));
       continue;
     }
 
     const isolate = document.createElement("bdi");
     isolate.setAttribute("dir", segment.dir);
     isolate.textContent = segment.text;
-    node.appendChild(isolate);
+    target.appendChild(isolate);
+  }
+
+  for (const child of preserved) {
+    target.appendChild(child);
   }
 }
 
@@ -154,7 +169,7 @@ export function hydrateUneditedText(node: VisibleTextNode, item: ContentItem): C
     return item;
   }
 
-  const fromDom = readVisibleText(node);
+  const fromDom = readVisibleText(findEditableLabelNode(node));
   if (fromDom.length === 0 || fromDom === item.originalText) {
     return item;
   }
@@ -208,6 +223,83 @@ function applyDirection(node: SnapshotNode, direction: TextDirection | undefined
   if (!node.getAttribute("dir")) {
     node.setAttribute("dir", direction);
   }
+}
+
+function findEditableLabelNode(node: VisibleTextNode): VisibleTextNode {
+  if (!containsNestedList(node)) {
+    return node;
+  }
+
+  return findFirstElement(node, (entry) => LABEL_TAGS.has(tagName(entry)), true) ?? node;
+}
+
+function containsNestedList(node: VisibleTextNode): boolean {
+  return findFirstElement(node, (entry) => NESTED_LIST_TAGS.has(tagName(entry)), false) !== undefined;
+}
+
+function collectPreservedChildren(node: SnapshotNode): SnapshotNode[] {
+  const preserved: SnapshotNode[] = [];
+  const children = node.childNodes;
+  if (children === undefined) {
+    return preserved;
+  }
+
+  for (let i = 0; i < children.length; i += 1) {
+    const child = children[i];
+    if (child === undefined || !isElementNode(child) || tagName(child) === "bdi") {
+      continue;
+    }
+
+    preserved.push(child as SnapshotNode);
+  }
+
+  return preserved;
+}
+
+function findFirstElement(
+  node: VisibleTextNode,
+  match: (entry: VisibleTextNode) => boolean,
+  skipNestedLists: boolean,
+): VisibleTextNode | undefined {
+  const children = node.childNodes;
+  if (children === undefined) {
+    return undefined;
+  }
+
+  for (let i = 0; i < children.length; i += 1) {
+    const child = children[i];
+    if (child === undefined || !isElementNode(child)) {
+      continue;
+    }
+
+    if (skipNestedLists && NESTED_LIST_TAGS.has(tagName(child))) {
+      continue;
+    }
+
+    if (match(child)) {
+      return child;
+    }
+
+    const nested = findFirstElement(child, match, skipNestedLists);
+    if (nested !== undefined) {
+      return nested;
+    }
+  }
+
+  return undefined;
+}
+
+function isWritableSnapshotNode(node: VisibleTextNode): node is SnapshotNode {
+  const record = node as SnapshotNode;
+  return typeof record.getAttribute === "function" && typeof record.setAttribute === "function";
+}
+
+function isElementNode(node: VisibleTextNode): boolean {
+  return node.nodeType === ELEMENT_NODE || node.tagName !== undefined;
+}
+
+function tagName(node: VisibleTextNode): string {
+  return node.tagName?.toLowerCase() ?? "";
 }
 
 function cssEscape(value: string): string {

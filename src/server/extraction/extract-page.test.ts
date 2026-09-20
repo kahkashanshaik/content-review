@@ -102,6 +102,37 @@ test("extracts standalone links that are not inside another extractable element"
   );
 });
 
+test("extracts dropdown trigger and submenu links separately", () => {
+  const result = extractPageContent(`<html><body>
+    <ul class="elementor-nav-menu">
+      <li class="menu-item-has-children">
+        <a href="#">About TIS<span class="sub-arrow"></span></a>
+        <ul class="sub-menu">
+          <li><a href="/about">About Us</a></li>
+          <li><a href="/history">Our History</a></li>
+          <li><a href="/leadership">Leadership</a></li>
+        </ul>
+      </li>
+      <li><a href="#">Academics</a></li>
+    </ul>
+  </body></html>`);
+  assert.equal(result.ok, true);
+  if (!result.ok) {
+    return;
+  }
+
+  assert.deepEqual(
+    result.value.items.map((item) => [item.elementType, item.text]),
+    [
+      ["a", "About TIS"],
+      ["a", "About Us"],
+      ["a", "Our History"],
+      ["a", "Leadership"],
+      ["a", "Academics"],
+    ],
+  );
+});
+
 test("stable ids depend on selector, not on text", () => {
   const first = extractPageContent(`<html><body><h1>Hello</h1></body></html>`);
   const second = extractPageContent(`<html><body><h1>Changed</h1></body></html>`);
