@@ -11,9 +11,13 @@ type VisualEditorToolbarProps = {
   path: string;
   submitting: boolean;
   canSubmit: boolean;
+  recrawling?: boolean;
+  deleting?: boolean;
   linkCopied: boolean;
   onCopyLink: () => void;
   onSubmit: () => void;
+  onRecrawl?: () => void;
+  onDelete?: () => void;
   zoom: number;
   onZoomChange: (value: number) => void;
   changes?: ReactNode;
@@ -27,9 +31,13 @@ export function VisualEditorToolbar({
   path,
   submitting,
   canSubmit,
+  recrawling = false,
+  deleting = false,
   linkCopied,
   onCopyLink,
   onSubmit,
+  onRecrawl,
+  onDelete,
   zoom,
   onZoomChange,
   changes,
@@ -70,6 +78,26 @@ export function VisualEditorToolbar({
       >
         {linkCopied ? "Link copied" : "Copy preview link"}
       </button>
+      {onRecrawl === undefined ? null : (
+        <button
+          type="button"
+          onClick={onRecrawl}
+          disabled={recrawling || deleting}
+          className="h-9 rounded-md border border-slate-200 bg-white px-3 text-sm font-medium text-slate-800 hover:bg-slate-50 disabled:text-slate-400"
+        >
+          {recrawling ? "Recrawling…" : "Recrawl"}
+        </button>
+      )}
+      {onDelete === undefined ? null : (
+        <button
+          type="button"
+          onClick={onDelete}
+          disabled={recrawling || deleting}
+          className="h-9 rounded-md border border-red-200 bg-white px-3 text-sm font-medium text-red-700 hover:bg-red-50 disabled:text-slate-400"
+        >
+          {deleting ? "Deleting…" : "Delete page"}
+        </button>
+      )}
       <button
         type="button"
         onClick={onSubmit}

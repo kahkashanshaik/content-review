@@ -45,6 +45,8 @@ export function ProjectPages({ projectId }: ProjectPagesProps) {
   const [inviteMessage, setInviteMessage] = useState<string | undefined>(undefined);
   const [inviteLink, setInviteLink] = useState<string | undefined>(undefined);
   const [deleting, setDeleting] = useState(false);
+  const [recrawlingId, setRecrawlingId] = useState<string | undefined>(undefined);
+  const [deletingPageId, setDeletingPageId] = useState<string | undefined>(undefined);
 
   useEffect(() => {
     let cancelled = false;
@@ -164,6 +166,59 @@ export function ProjectPages({ projectId }: ProjectPagesProps) {
     }
   }
 
+  async function reloadProject(): Promise<void> {
+    const body = await apiRequest<{
+      project: Project;
+      pages: ProjectPageRow[];
+      role: ProjectRole;
+      members: ProjectMemberRow[];
+    }>(`/api/projects/${projectId}`);
+    setState({
+      status: "ready",
+      project: body.project,
+      pages: body.pages,
+      role: body.role,
+      members: body.members,
+    });
+  }
+
+  async function onRecrawlPage(page: ProjectPageRow): Promise<void> {
+    if (
+      !window.confirm(
+        "Recrawl this page from the live website? The current snapshot and pending edits for this page will be replaced.",
+      )
+    ) {
+      return;
+    }
+
+    setRecrawlingId(page.id);
+    setFormError(undefined);
+    try {
+      const result = await apiRequest<{ page: Page }>(`/api/pages/${page.id}/recrawl`, { method: "POST" });
+      router.push(`/review/${result.page.id}`);
+    } catch (caught) {
+      setFormError(caught instanceof Error ? caught.message : "The page could not be recrawled.");
+      setRecrawlingId(undefined);
+    }
+  }
+
+  async function onDeletePage(page: ProjectPageRow): Promise<void> {
+    if (!window.confirm("Delete this crawled page and its edits? This cannot be undone.")) {
+      return;
+    }
+
+    setDeletingPageId(page.id);
+    setFormError(undefined);
+    try {
+      await apiRequest(`/api/pages/${page.id}`, { method: "DELETE" });
+      await reloadProject();
+    } catch (caught) {
+      setFormError(caught instanceof Error ? caught.message : "The page could not be deleted.");
+    } finally {
+      setDeletingPageId(undefined);
+    }
+  }
+
   if (state.status === "loading") {
     return <p className="mt-3 text-sm text-slate-600">Loading project…</p>;
   }
@@ -276,21 +331,47 @@ export function ProjectPages({ projectId }: ProjectPagesProps) {
         <p className="mt-6 text-slate-700">This project has no crawled pages yet.</p>
       ) : (
         <ul className="mt-6 grid gap-3">
-          {state.pages.map((page) => (
-            <li key={page.id}>
-              <Link
-                href={`/review/${page.id}`}
-                className="flex items-center justify-between gap-4 rounded-lg border border-slate-200 bg-white px-4 py-3 text-slate-900 hover:border-slate-400"
+          {state.pages.map((page) => {
+            const pageBusy = recrawlingId === page.id || deletingPageId === page.id;
+            return (
+              <li
+                key={page.id}
+                className="flex flex-wrap items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-3"
               >
-                <span className="min-w-0 truncate font-medium" dir="ltr">
-                  {pagePathLabel(page.sourceUrl)}
-                </span>
-                <span className="shrink-0 text-sm text-slate-600">
-                  {awaitingReviewLabel(page.awaitingReviewCount)}
-                </span>
-              </Link>
-            </li>
-          ))}
+                <Link
+                  href={`/review/${page.id}`}
+                  className="flex min-w-0 flex-1 items-center justify-between gap-4 text-slate-900 hover:text-[#5b4dff]"
+                >
+                  <span className="min-w-0 truncate font-medium" dir="ltr">
+                    {pagePathLabel(page.sourceUrl)}
+                  </span>
+                  <span className="shrink-0 text-sm text-slate-600">
+                    {awaitingReviewLabel(page.awaitingReviewCount)}
+                  </span>
+                </Link>
+                <button
+                  type="button"
+                  onClick={() => {
+                    void onRecrawlPage(page);
+                  }}
+                  disabled={pageBusy || recrawlingId !== undefined}
+                  className="rounded-md border border-slate-200 px-3 py-1.5 text-sm font-medium text-slate-800 hover:bg-slate-50 disabled:text-slate-400"
+                >
+                  {recrawlingId === page.id ? "Recrawling…" : "Recrawl"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    void onDeletePage(page);
+                  }}
+                  disabled={pageBusy || recrawlingId !== undefined}
+                  className="rounded-md border border-red-200 px-3 py-1.5 text-sm font-medium text-red-700 hover:bg-red-50 disabled:text-slate-400"
+                >
+                  {deletingPageId === page.id ? "Deleting…" : "Delete"}
+                </button>
+              </li>
+            );
+          })}
         </ul>
       )}
     </div>

@@ -42,7 +42,7 @@ export function NewProjectForm() {
           name="name"
           required
           disabled={busy}
-          placeholder="YON"
+          placeholder="StandardTouch"
           className="rounded-md border border-slate-300 bg-white px-3 py-2"
         />
       </label>
@@ -53,7 +53,7 @@ export function NewProjectForm() {
           type="url"
           required
           disabled={busy}
-          placeholder="https://youroffer.now.com"
+          placeholder="https://standardtouch.com"
           className="rounded-md border border-slate-300 bg-white px-3 py-2"
         />
       </label>

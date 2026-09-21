@@ -66,6 +66,20 @@ export function createPageRepository(db: ContentReviewDatabase): PageRepository 
     async save(page) {
       await db.pages.put(page);
     },
+    async delete(id) {
+      const pageSnapshots = await db.snapshots.where("pageId").equals(id).toArray();
+      const items = await db.contentItems.where("pageId").equals(id).toArray();
+      await db.pages.delete(id);
+      await db.snapshots.where("pageId").equals(id).delete();
+      for (const snapshot of pageSnapshots) {
+        await db.pageStates.where("pageSnapshotId").equals(snapshot.id).delete();
+      }
+      for (const item of items) {
+        await db.contentChanges.where("contentItemId").equals(item.id).delete();
+      }
+      await db.contentItems.where("pageId").equals(id).delete();
+      await db.revisions.where("pageId").equals(id).delete();
+    },
   };
 }
 

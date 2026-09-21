@@ -116,6 +116,9 @@ export function createPostgresRepositories(): Repositories {
           ],
         );
       },
+      async delete(id) {
+        await exec("DELETE FROM pages WHERE id = $1", [id]);
+      },
     },
     snapshots: {
       getById(id) {

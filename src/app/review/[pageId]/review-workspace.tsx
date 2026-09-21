@@ -1,8 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 
 import { apiRequest } from "@/client/api";
+import { copyText } from "@/client/clipboard";
 import { EditableSnapshot } from "@/client/editing/editable-snapshot";
 import { ChangeReviewPanel } from "@/client/review/change-review-panel";
 import { ChangesMenu, VisualEditorToolbar } from "@/client/review/visual-editor-toolbar";
@@ -20,8 +22,11 @@ type ReviewState =
   | { status: "error"; message: string };
 
 export function ReviewWorkspace({ pageId }: ReviewWorkspaceProps) {
+  const router = useRouter();
   const [state, setState] = useState<ReviewState>({ status: "loading" });
   const [submitting, setSubmitting] = useState(false);
+  const [recrawling, setRecrawling] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [decidingId, setDecidingId] = useState<string | undefined>(undefined);
   const [actionError, setActionError] = useState<string | undefined>(undefined);
   const [linkCopied, setLinkCopied] = useState(false);
@@ -102,6 +107,45 @@ export function ReviewWorkspace({ pageId }: ReviewWorkspaceProps) {
     [load],
   );
 
+  const onRecrawl = useCallback(async () => {
+    if (
+      !window.confirm(
+        "Recrawl this page from the live website? The current snapshot and pending edits for this page will be replaced.",
+      )
+    ) {
+      return;
+    }
+
+    setRecrawling(true);
+    setActionError(undefined);
+    try {
+      await apiRequest(`/api/pages/${pageId}/recrawl`, { method: "POST" });
+      await load();
+    } catch (caught) {
+      setActionError(caught instanceof Error ? caught.message : "The page could not be recrawled.");
+    } finally {
+      setRecrawling(false);
+    }
+  }, [load, pageId]);
+
+  const onDeletePage = useCallback(async () => {
+    const projectHref =
+      state.status === "ready" ? `/projects/${state.data.project.id}` : "/projects";
+    if (!window.confirm("Delete this crawled page and its edits? This cannot be undone.")) {
+      return;
+    }
+
+    setDeleting(true);
+    setActionError(undefined);
+    try {
+      await apiRequest(`/api/pages/${pageId}`, { method: "DELETE" });
+      router.push(projectHref);
+    } catch (caught) {
+      setActionError(caught instanceof Error ? caught.message : "The page could not be deleted.");
+      setDeleting(false);
+    }
+  }, [pageId, router, state]);
+
   if (state.status === "loading") {
     return <p className="p-6 text-sm text-slate-600">Loading saved snapshot…</p>;
   }
@@ -130,9 +174,11 @@ export function ReviewWorkspace({ pageId }: ReviewWorkspaceProps) {
         path={sourcePath(data.page.sourceUrl)}
         submitting={submitting}
         canSubmit={draftCount > 0}
+        recrawling={recrawling}
+        deleting={deleting}
         linkCopied={linkCopied}
         onCopyLink={() => {
-          void navigator.clipboard.writeText(window.location.href).then(
+          void copyText(window.location.href).then(
             () => {
               setLinkCopied(true);
               window.setTimeout(() => {
@@ -146,6 +192,12 @@ export function ReviewWorkspace({ pageId }: ReviewWorkspaceProps) {
         }}
         onSubmit={() => {
           void onSubmit();
+        }}
+        onRecrawl={() => {
+          void onRecrawl();
+        }}
+        onDelete={() => {
+          void onDeletePage();
         }}
         zoom={zoom}
         onZoomChange={setZoom}

@@ -14,12 +14,21 @@ test("review visual editor puts submit and copy actions in the top nav", () => {
   );
   assert.match(toolbar, /Copy preview link/);
   assert.match(toolbar, /Submit for review/);
+  assert.match(toolbar, /Recrawl/);
+  assert.match(toolbar, /Delete page/);
   assert.match(toolbar, /bg-\[#5b4dff\]/);
   assert.match(toolbar, /LockedOriginPathField/);
   assert.match(toolbar, /visual-editor-url/);
   assert.match(toolbar, /readOnly/);
   assert.doesNotMatch(toolbar, /onPathChange/);
   assert.doesNotMatch(toolbar, /onOpenUrl/);
+
+  const workspace = readFileSync(
+    join(srcRoot, "app/review/[pageId]/review-workspace.tsx"),
+    "utf8",
+  );
+  assert.match(workspace, /copyText\(window\.location\.href\)/);
+  assert.doesNotMatch(workspace, /navigator\.clipboard\.writeText/);
 });
 
 test("edit sidebar uses a direction-aware textarea instead of snapshot contenteditable", () => {
@@ -51,6 +60,9 @@ test("project pages add further paths against a locked origin", () => {
   assert.match(pages, /awaitingReviewCount/);
   assert.match(pages, /Invite/);
   assert.match(pages, /Delete project/);
+  assert.match(pages, /Recrawl/);
+  assert.match(pages, /onDeletePage/);
+  assert.match(pages, /\/api\/pages\/\$\{page\.id\}\/recrawl/);
   assert.doesNotMatch(pages, /page\.title/);
   assert.doesNotMatch(pages, /type="url"/);
 

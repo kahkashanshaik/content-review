@@ -22,6 +22,46 @@ export function createMemoryRepositories(): Repositories {
   const members = new Map<string, ProjectMember>();
   const invites = new Map<string, ProjectInvite>();
 
+  async function deletePageGraph(pageId: string): Promise<void> {
+    pages.delete(pageId);
+
+    const snapshotIds: string[] = [];
+    for (const [snapshotId, snapshot] of snapshots) {
+      if (snapshot.pageId === pageId) {
+        snapshotIds.push(snapshotId);
+        snapshots.delete(snapshotId);
+      }
+    }
+
+    const snapshotIdSet = new Set(snapshotIds);
+    for (const [stateId, state] of states) {
+      if (snapshotIdSet.has(state.pageSnapshotId)) {
+        states.delete(stateId);
+      }
+    }
+
+    const itemIds: string[] = [];
+    for (const [itemId, item] of contentItems) {
+      if (item.pageId === pageId) {
+        itemIds.push(itemId);
+        contentItems.delete(itemId);
+      }
+    }
+
+    const itemIdSet = new Set(itemIds);
+    for (const [changeId, change] of changes) {
+      if (itemIdSet.has(change.contentItemId)) {
+        changes.delete(changeId);
+      }
+    }
+
+    for (const [revisionId, revision] of revisions) {
+      if (revision.pageId === pageId) {
+        revisions.delete(revisionId);
+      }
+    }
+  }
+
   return {
     projects: {
       async getById(id) {
@@ -83,6 +123,9 @@ export function createMemoryRepositories(): Repositories {
       },
       async save(page) {
         pages.set(page.id, page);
+      },
+      async delete(id) {
+        await deletePageGraph(id);
       },
     },
     snapshots: {

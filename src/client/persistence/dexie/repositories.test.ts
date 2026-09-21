@@ -67,6 +67,21 @@ test("pages are listed only for their project", async () => {
     const forA = await repos.pages.listByProject(projectA.id);
     assert.deepEqual(forA.map((page) => page.id), [pageA.id]);
     assert.equal(forA[0]?.sourceUrl, "https://a.example/one");
+
+    const snapshot = createdSnapshot("<div></div>", pageA.id);
+    const state = createdState(snapshot.id, "default", "default", "Default");
+    const item = createdContent(pageA.id, state.id, "Welcome", 0);
+    const change = createdChange("Welcome", "Hello", "pending");
+    await repos.snapshots.save(snapshot);
+    await repos.states.save(state);
+    await repos.contentItems.save({ ...item, id: change.contentItemId });
+    await repos.changes.save(change);
+    await repos.pages.delete(pageA.id);
+
+    assert.equal(await repos.pages.getById(pageA.id), undefined);
+    assert.equal(await repos.snapshots.getById(snapshot.id), undefined);
+    assert.equal((await repos.pages.listByProject(projectA.id)).length, 0);
+    assert.equal((await repos.pages.listByProject(projectB.id)).length, 1);
   });
 });
 

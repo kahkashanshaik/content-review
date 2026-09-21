@@ -26,6 +26,7 @@ export interface PageRepository {
   listByProject(projectId: string): Promise<Page[]>;
   getByProjectAndUrl(projectId: string, sourceUrl: string): Promise<Page | undefined>;
   save(page: Page): Promise<void>;
+  delete(id: string): Promise<void>;
 }
 
 export interface PageSnapshotRepository {
